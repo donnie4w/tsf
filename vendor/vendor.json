@@ -1,0 +1,54 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "GU2+svhjJ+F4c4AtjLd+6Tvckwc=",
+			"path": "git.apache.org/thrift.git/lib/go/thrift",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "eHaNIhmdXWmEmMX0Nsw15gguQCk=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "b8dc90050f24c1a73a52f107f3f575be67b21b7c",
+			"revisionTime": "2016-05-25T16:57:06Z"
+		},
+		{
+			"checksumSHA1": "1UUhnJ6MsNrpBh9Sw0+oIiYtdaw=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "b8dc90050f24c1a73a52f107f3f575be67b21b7c",
+			"revisionTime": "2016-05-25T16:57:06Z"
+		},
+		{
+			"checksumSHA1": "t+hKLYCKJQTIH0odwR1FiqSfnJs=",
+			"path": "github.com/julienschmidt/httprouter",
+			"revision": "8a45e95fc75cb77048068a62daed98cc22fdac7c",
+			"revisionTime": "2017-01-04T18:58:16Z"
+		},
+		{
+			"checksumSHA1": "dzsV1VPWcsSpSK0cka+G/GfZXDk=",
+			"path": "github.com/syndtr/goleveldb/leveldb",
+			"revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+			"revisionTime": "2016-12-27T11:05:19Z"
+		},
+		{
+			"checksumSHA1": "0VG/jPRNvgZ9RPaPZXoduL1zzwE=",
+			"path": "github.com/syndtr/goleveldb/leveldb/filter",
+			"revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+			"revisionTime": "2016-12-27T11:05:19Z"
+		},
+		{
+			"checksumSHA1": "6Umu4vGG/SklM+2SKN3Gbr9mafs=",
+			"path": "github.com/syndtr/goleveldb/leveldb/opt",
+			"revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+			"revisionTime": "2016-12-27T11:05:19Z"
+		},
+		{
+			"checksumSHA1": "IdPwMHVg4jrJURCdXg+zGACiUvM=",
+			"path": "github.com/syndtr/goleveldb/leveldb/util",
+			"revision": "23851d93a2292dcc56e71a18ec9e0624d84a0f65",
+			"revisionTime": "2016-12-27T11:05:19Z"
+		}
+	],
+	"rootPath": "github.com/donnie4w/tsf"
+}
