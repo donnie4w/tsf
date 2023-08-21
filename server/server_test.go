@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/donnie4w/gofer/buffer"
 	"github.com/donnie4w/simplelog/logging"
-	. "github.com/donnie4w/tsf/packet"
+	"github.com/donnie4w/tsf/packet"
 )
 
 func TestServer(t *testing.T) {
@@ -20,7 +21,7 @@ func TestServer(t *testing.T) {
 	}
 }
 
-func process(sock *TSocket, pkt *Packet) (err error) {
+func process(sock *TSocket, pkt *packet.Packet) (err error) {
 	logging.Debug(string(pkt.ToBytes()))
 	time.Sleep(3 * time.Second)
 	sock.WriteWithLen(pkt.ToBytes())

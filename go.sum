@@ -1,2 +1,4 @@
-github.com/donnie4w/gofer v0.0.0-20230804143121-9a2b690e93df h1:v0o91DmlIg7DIcEcYjzS2LeUZd103xhD3ssAzFqBEjI=
-github.com/donnie4w/gofer v0.0.0-20230804143121-9a2b690e93df/go.mod h1:x2FACHumiId2KXUEsrkNoTgqFrssA5W69Y+n2R35cSY=
+github.com/donnie4w/gofer v0.0.0-20230821151943-81c71c776924 h1:MG/IRpN39Cv6enEGrL0mqmgF0HI07jb6ARdmnEMYxb0=
+github.com/donnie4w/gofer v0.0.0-20230821151943-81c71c776924/go.mod h1:x2FACHumiId2KXUEsrkNoTgqFrssA5W69Y+n2R35cSY=
+github.com/donnie4w/simplelog v0.0.0-20230813073223-795779b98a18 h1:hsaZ6HkTaQN7phgZ1GX4GpEQ8Iy+sfqIWTmsfnNpABE=
+github.com/donnie4w/simplelog v0.0.0-20230813073223-795779b98a18/go.mod h1:rSopGC/ogVfAdi7CkgZwZYJGRjb4LfhrfQwreqImT+E=

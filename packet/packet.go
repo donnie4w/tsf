@@ -4,6 +4,10 @@
  */
 package packet
 
+import (
+	. "github.com/donnie4w/gofer/buffer"
+)
+
 type Packet struct {
 	Len int32
 	buf *Buffer
