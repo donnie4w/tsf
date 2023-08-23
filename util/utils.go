@@ -26,3 +26,18 @@ func BytesToInt32(bs []byte) (_r int32) {
 	}
 	return
 }
+
+func BytesToInt64(bs []byte) (_r int64) {
+	if len(bs) >= 8 {
+		for i := 0; i < 8; i++ {
+			_r = _r | int64(bs[i])<<(8*(7-i))
+		}
+	} else {
+		bs8 := make([]byte, 8)
+		for i, b := range bs {
+			bs8[7-i] = b
+		}
+		_r = BytesToInt64(bs8)
+	}
+	return
+}
