@@ -11,34 +11,45 @@ import (
 	"github.com/donnie4w/tsf/util"
 )
 
-func Process(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) error) {
+func Process(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) error) (err error) {
 	defer recover()
+	defer socket.Close()
 	for socket.conn.isValid() {
-		bufhead := BufPool.Get()
-		err := readsocket(socket, 4, bufhead)
-		if err != nil {
+		bufhead := NewBuffer()
+		headBit := int64(4)
+		if socket.cfg.Packet64Bits {
+			headBit = 8
+		}
+		if err = readsocket(socket, headBit, bufhead); err != nil {
 			break
 		}
-		ln := util.BytesToInt32(bufhead.Bytes())
-		bufhead.Free()
-		buf := BufPool.Get()
-		if err := readsocket(socket, ln, buf); err == nil {
+		var ln int64
+		if socket.cfg.Packet64Bits {
+			ln = util.BytesToInt64(bufhead.Bytes())
+		} else {
+			ln = int64(util.BytesToInt32(bufhead.Bytes()))
+		}
+		buf := NewBuffer()
+		if err = readsocket(socket, ln, buf); err == nil {
 			pkt := Wrap(buf)
 			go func() {
 				defer recover()
 				processPacKet(socket, pkt)
 			}()
+		} else {
+			break
 		}
 	}
+	return
 }
 
-func readsocket(socket *TSocket, ln int32, buf *Buffer) (err error) {
+func readsocket(socket *TSocket, ln int64, buf *Buffer) (err error) {
 	bs := make([]byte, ln)
 	var i int
 	if i, err = socket.Read(bs); err == nil {
 		buf.Write(bs)
 		if i < int(ln) {
-			readsocket(socket, ln-int32(i), buf)
+			readsocket(socket, ln-int64(i), buf)
 		}
 	}
 	return
