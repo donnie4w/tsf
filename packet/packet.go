@@ -9,7 +9,7 @@ import (
 )
 
 type Packet struct {
-	Len int32
+	Len int
 	buf *Buffer
 }
 
