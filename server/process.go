@@ -32,6 +32,7 @@ func Process(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) e
 		buf := NewBuffer()
 		if err = readsocket(socket, ln, buf); err == nil {
 			pkt := Wrap(buf)
+			pkt.Len = int(ln)
 			go func() {
 				defer recover()
 				processPacKet(socket, pkt)
