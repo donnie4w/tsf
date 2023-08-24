@@ -29,7 +29,7 @@ import (
 type socketConn struct {
 	net.Conn
 
-	// buffer [1]byte
+	buffer [1]byte
 	closed atomic.Int32
 }
 
