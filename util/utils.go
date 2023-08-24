@@ -12,6 +12,14 @@ func Int32ToBytes(n int32) (bs []byte) {
 	return
 }
 
+func Int64ToBytes(n int64) (bs []byte) {
+	bs = make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		bs[i] = byte(n >> (8 * (7 - i)))
+	}
+	return
+}
+
 func BytesToInt32(bs []byte) (_r int32) {
 	if len(bs) >= 4 {
 		for i := 0; i < 4; i++ {
