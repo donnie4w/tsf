@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /**
  * Copyright 2017 tsf Author. All Rights Reserved.
  * email: donnie4w@gmail.com
@@ -32,11 +50,11 @@ func (ta tcpAddr) String() string {
 }
 
 // Deprecated: Use NewTSocketConf instead.
-func NewTSocket(hostPort string) (*TSocket, error) {
-	return NewTSocketConf(hostPort, &TConfiguration{
-		noPropagation: true,
-	}), nil
-}
+// func NewTSocket(hostPort string) (*TSocket, error) {
+// 	return NewTSocketConf(hostPort, &TConfiguration{
+// 		noPropagation: true,
+// 	}), nil
+// }
 
 // NewTSocketConf creates a net.Conn-backed TTransport, given a host and port.
 //
@@ -51,14 +69,14 @@ func NewTSocketConf(hostPort string, conf *TConfiguration) *TSocket {
 }
 
 // Deprecated: Use NewTSocketConf instead.
-func NewTSocketTimeout(hostPort string, connTimeout time.Duration, soTimeout time.Duration) (*TSocket, error) {
-	return NewTSocketConf(hostPort, &TConfiguration{
-		ConnectTimeout: connTimeout,
-		SocketTimeout:  soTimeout,
+// func NewTSocketTimeout(hostPort string, connTimeout time.Duration, soTimeout time.Duration) (*TSocket, error) {
+// 	return NewTSocketConf(hostPort, &TConfiguration{
+// 		ConnectTimeout: connTimeout,
+// 		SocketTimeout:  soTimeout,
 
-		noPropagation: true,
-	}), nil
-}
+// 		noPropagation: true,
+// 	}), nil
+// }
 
 // NewTSocketFromAddrConf creates a TSocket from a net.Addr
 func NewTSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSocket {
@@ -69,14 +87,14 @@ func NewTSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSocket {
 }
 
 // Deprecated: Use NewTSocketFromAddrConf instead.
-func NewTSocketFromAddrTimeout(addr net.Addr, connTimeout time.Duration, soTimeout time.Duration) *TSocket {
-	return NewTSocketFromAddrConf(addr, &TConfiguration{
-		ConnectTimeout: connTimeout,
-		SocketTimeout:  soTimeout,
+// func NewTSocketFromAddrTimeout(addr net.Addr, connTimeout time.Duration, soTimeout time.Duration) *TSocket {
+// 	return NewTSocketFromAddrConf(addr, &TConfiguration{
+// 		ConnectTimeout: connTimeout,
+// 		SocketTimeout:  soTimeout,
 
-		noPropagation: true,
-	})
-}
+// 		noPropagation: true,
+// 	})
+// }
 
 // NewTSocketFromConnConf creates a TSocket from an existing net.Conn.
 func NewTSocketFromConnConf(conn net.Conn, conf *TConfiguration) *TSocket {
@@ -92,7 +110,7 @@ func NewTSocketFromConnTimeout(conn net.Conn, socketTimeout time.Duration) *TSoc
 	return NewTSocketFromConnConf(conn, &TConfiguration{
 		SocketTimeout: socketTimeout,
 
-		noPropagation: true,
+		// noPropagation: true,
 	})
 }
 
@@ -107,7 +125,7 @@ func (p *TSocket) SetTConfiguration(conf *TConfiguration) {
 func (p *TSocket) SetConnTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
 		p.cfg = &TConfiguration{
-			noPropagation: true,
+			// noPropagation: true,
 		}
 	}
 	p.cfg.ConnectTimeout = timeout
@@ -118,7 +136,7 @@ func (p *TSocket) SetConnTimeout(timeout time.Duration) error {
 func (p *TSocket) SetSocketTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
 		p.cfg = &TConfiguration{
-			noPropagation: true,
+			// noPropagation: true,
 		}
 	}
 	p.cfg.SocketTimeout = timeout
