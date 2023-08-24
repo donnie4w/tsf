@@ -228,9 +228,17 @@ func (p *TSocket) Write(buf []byte) (int, error) {
 }
 
 func (p *TSocket) WriteWithLen(buf []byte) (int, error) {
-	bys := make([]byte, 4+len(buf))
-	copy(bys[:4], util.Int32ToBytes(int32(len(buf))))
-	copy(bys[4:], buf)
+	ln := 4
+	if p.cfg.Packet64Bits {
+		ln = 8
+	}
+	bys := make([]byte, ln+len(buf))
+	if p.cfg.Packet64Bits {
+		copy(bys[:ln], util.Int64ToBytes(int64(len(buf))))
+	} else {
+		copy(bys[:ln], util.Int32ToBytes(int32(len(buf))))
+	}
+	copy(bys[ln:], buf)
 	return p.Write(bys)
 }
 
