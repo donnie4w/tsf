@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+/**
+ * Copyright 2023 tsf Author. All Rights Reserved.
+ * email: donnie4w@gmail.com
+ */
 package server
 
 import (
@@ -127,7 +130,7 @@ type TConfiguration struct {
 	// underlying TTransport/TProtocol's cfg by accidental propagations.
 	//
 	// For external users this is always false.
-	noPropagation bool
+	// noPropagation bool
 }
 
 // GetMaxMessageSize returns the max message size an implementation should
@@ -216,12 +219,12 @@ type TConfigurationSetter interface {
 //
 // NOTE: nil cfg is not propagated. If you want to propagate a TConfiguration
 // with everything being default value, use &TConfiguration{} explicitly instead.
-func PropagateTConfiguration(impl interface{}, cfg *TConfiguration) {
-	if cfg == nil || cfg.noPropagation {
-		return
-	}
+// func PropagateTConfiguration(impl interface{}, cfg *TConfiguration) {
+// 	if cfg == nil || cfg.noPropagation {
+// 		return
+// 	}
 
-	if setter, ok := impl.(TConfigurationSetter); ok {
-		setter.SetTConfiguration(cfg)
-	}
-}
+// 	if setter, ok := impl.(TConfigurationSetter); ok {
+// 		setter.SetTConfiguration(cfg)
+// 	}
+// }
