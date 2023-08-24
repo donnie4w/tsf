@@ -46,11 +46,15 @@ func Process(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) e
 
 func readsocket(socket *TSocket, ln int64, buf *Buffer) (err error) {
 	bs := make([]byte, ln)
+	return _readsocket(socket, ln, buf, bs)
+}
+
+func _readsocket(socket *TSocket, ln int64, buf *Buffer, bs []byte) (err error) {
 	var i int
 	if i, err = socket.Read(bs); err == nil {
-		buf.Write(bs)
+		buf.Write(bs[:i])
 		if i < int(ln) {
-			readsocket(socket, ln-int64(i), buf)
+			_readsocket(socket, ln-int64(i), buf, bs)
 		}
 	}
 	return
