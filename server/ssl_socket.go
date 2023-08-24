@@ -61,24 +61,24 @@ func NewTSSLSocketConf(hostPort string, conf *TConfiguration) *TSSLSocket {
 }
 
 // Deprecated: Use NewTSSLSocketConf instead.
-func NewTSSLSocket(hostPort string, cfg *tls.Config) (*TSSLSocket, error) {
-	return NewTSSLSocketConf(hostPort, &TConfiguration{
-		TLSConfig: cfg,
+// func NewTSSLSocket(hostPort string, cfg *tls.Config) (*TSSLSocket, error) {
+// 	return NewTSSLSocketConf(hostPort, &TConfiguration{
+// 		TLSConfig: cfg,
 
-		noPropagation: true,
-	}), nil
-}
+// 		noPropagation: true,
+// 	}), nil
+// }
 
 // Deprecated: Use NewTSSLSocketConf instead.
-func NewTSSLSocketTimeout(hostPort string, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) (*TSSLSocket, error) {
-	return NewTSSLSocketConf(hostPort, &TConfiguration{
-		ConnectTimeout: connectTimeout,
-		SocketTimeout:  socketTimeout,
-		TLSConfig:      cfg,
+// func NewTSSLSocketTimeout(hostPort string, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) (*TSSLSocket, error) {
+// 	return NewTSSLSocketConf(hostPort, &TConfiguration{
+// 		ConnectTimeout: connectTimeout,
+// 		SocketTimeout:  socketTimeout,
+// 		TLSConfig:      cfg,
 
-		noPropagation: true,
-	}), nil
-}
+// 		noPropagation: true,
+// 	}), nil
+// }
 
 // NewTSSLSocketFromAddrConf creates a TSSLSocket from a net.Addr.
 func NewTSSLSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSSLSocket {
@@ -89,15 +89,15 @@ func NewTSSLSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSSLSocket 
 }
 
 // Deprecated: Use NewTSSLSocketFromAddrConf instead.
-func NewTSSLSocketFromAddrTimeout(addr net.Addr, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) *TSSLSocket {
-	return NewTSSLSocketFromAddrConf(addr, &TConfiguration{
-		ConnectTimeout: connectTimeout,
-		SocketTimeout:  socketTimeout,
-		TLSConfig:      cfg,
+// func NewTSSLSocketFromAddrTimeout(addr net.Addr, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) *TSSLSocket {
+// 	return NewTSSLSocketFromAddrConf(addr, &TConfiguration{
+// 		ConnectTimeout: connectTimeout,
+// 		SocketTimeout:  socketTimeout,
+// 		TLSConfig:      cfg,
 
-		noPropagation: true,
-	})
-}
+// 		noPropagation: true,
+// 	})
+// }
 
 // NewTSSLSocketFromConnConf creates a TSSLSocket from an existing net.Conn.
 func NewTSSLSocketFromConnConf(conn net.Conn, conf *TConfiguration) *TSSLSocket {
@@ -114,7 +114,7 @@ func NewTSSLSocketFromConnTimeout(conn net.Conn, cfg *tls.Config, socketTimeout 
 		SocketTimeout: socketTimeout,
 		TLSConfig:     cfg,
 
-		noPropagation: true,
+		// noPropagation: true,
 	})
 }
 
