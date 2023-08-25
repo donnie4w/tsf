@@ -35,7 +35,7 @@ func Process(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) e
 		if err = readsocket(socket, ln, buf); err == nil {
 			pkt := Wrap(buf)
 			pkt.Len = int(ln)
-			if socket.cfg.Sync {
+			if socket.cfg.SyncProcess {
 				processPacKet(socket, pkt)
 			} else {
 				go func() {
@@ -144,7 +144,7 @@ func _processMerge(bs []byte, socket *TSocket, processPacKet func(socket *TSocke
 			ln = int64(util.BytesToInt32(bs[:bit]))
 		}
 		pkt := &Packet{Len: int(ln), Buf: NewBufferBySlice(bs[bit : bit+ln])}
-		if socket.cfg.Sync {
+		if socket.cfg.SyncProcess {
 			processPacKet(socket, pkt)
 		} else {
 			go func() {

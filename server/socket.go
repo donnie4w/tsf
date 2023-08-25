@@ -150,6 +150,33 @@ func (p *TSocket) SetSocketTimeout(timeout time.Duration) error {
 	return nil
 }
 
+// Whether compressed merge data
+func (p *TSocket) SetSnappyMergeData(compress bool) error {
+	if p.cfg == nil {
+		p.cfg = &TConfiguration{}
+	}
+	p.cfg.SnappyMergeData = compress
+	return nil
+}
+
+// Whether the packet size is 64-bit binary
+func (p *TSocket) SetPacket64Bits(isPacket64Bits bool) error {
+	if p.cfg == nil {
+		p.cfg = &TConfiguration{}
+	}
+	p.cfg.Packet64Bits = isPacket64Bits
+	return nil
+}
+
+// Whether process is synchronize
+func (p *TSocket) SetSyncProcess(isSync bool) error {
+	if p.cfg == nil {
+		p.cfg = &TConfiguration{}
+	}
+	p.cfg.SyncProcess = isSync
+	return nil
+}
+
 func (p *TSocket) pushDeadline(read, write bool) {
 	var t time.Time
 	if timeout := p.cfg.GetSocketTimeout(); timeout > 0 {
@@ -249,7 +276,7 @@ func (p *TSocket) WriteWithLen(buf []byte) (int, error) {
 	return p.Write(bys)
 }
 
-func (p *TSocket) WriteWithMerge(buf []byte) {
+func (p *TSocket) WriteWithMerge(buf []byte) (i int, err error) {
 	if p._dataChan == nil {
 		p.mux.Lock()
 		if p._dataChan == nil {
@@ -260,8 +287,9 @@ func (p *TSocket) WriteWithMerge(buf []byte) {
 	p._dataChan <- buf
 	atomic.AddInt64(&p._incount, 1)
 	if p.mux.TryLock() {
-		go writeMerge(p)
+		i, err = writeMerge(p)
 	}
+	return
 }
 
 func (p *TSocket) Flush(ctx context.Context) error {
