@@ -10,19 +10,19 @@ import (
 
 type Packet struct {
 	Len int
-	buf *Buffer
+	Buf *Buffer
 }
 
 func Wrap(buf *Buffer) (p *Packet) {
 	p = new(Packet)
-	p.buf = buf
+	p.Buf = buf
 	return
 }
 
 func (this *Packet) ToBytes() []byte {
-	return this.buf.Bytes()
+	return this.Buf.Bytes()
 }
 
 func (this *Packet) Free() {
-	this.buf.Free()
+	this.Buf.Free()
 }

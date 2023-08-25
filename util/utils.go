@@ -4,6 +4,8 @@
  */
 package util
 
+import "github.com/golang/snappy"
+
 func Int32ToBytes(n int32) (bs []byte) {
 	bs = make([]byte, 4)
 	for i := 0; i < 4; i++ {
@@ -47,5 +49,14 @@ func BytesToInt64(bs []byte) (_r int64) {
 		}
 		_r = BytesToInt64(bs8)
 	}
+	return
+}
+
+func SnappyEncode(bs []byte) (_r []byte) {
+	return snappy.Encode(nil, bs)
+}
+
+func SnappyDecode(bs []byte) (_r []byte) {
+	_r, _ = snappy.Decode(nil, bs)
 	return
 }

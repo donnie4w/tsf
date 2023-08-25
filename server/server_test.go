@@ -5,11 +5,10 @@
 package server
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
-	. "github.com/donnie4w/gofer/buffer"
-	"github.com/donnie4w/simplelog/logging"
 	"github.com/donnie4w/tsf/packet"
 )
 
@@ -25,21 +24,49 @@ func TestServer(t *testing.T) {
 	}
 }
 
+func TestServerMerge(t *testing.T) {
+	if serversocket, err := NewTServerSocketTimeout(":20001", 10*time.Second); err == nil {
+		if err = serversocket.Listen(); err == nil {
+			for {
+				if socket, err := serversocket.Accept(); err == nil {
+					socket.SetTConfiguration(&TConfiguration{SnappyMergeData: true})
+					go ProcessMerge(socket, process2)
+				}
+			}
+		}
+	}
+}
+
 func process(sock *TSocket, pkt *packet.Packet) (err error) {
-	logging.Debug(string(pkt.ToBytes()))
+	fmt.Println(string(pkt.ToBytes()))
 	time.Sleep(3 * time.Second)
 	sock.WriteWithLen(pkt.ToBytes())
 	return
 }
 
+func process2(sock *TSocket, pkt *packet.Packet) (err error) {
+	fmt.Println(string(pkt.ToBytes()))
+	time.Sleep(3 * time.Second)
+	sock.WriteWithMerge(pkt.ToBytes())
+	return
+}
+
 func TestSocket(t *testing.T) {
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SocketTimeout: 10 * time.Second})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second})
 	if err := sock.Open(); err == nil {
 		bs := []byte("haha111")
-		buf := BufPool.Get()
-		buf.WriteInt32(len(bs))
-		buf.Write(bs)
-		sock.Write(buf.Bytes())
+		sock.WriteWithLen(bs)
 	}
 	Process(sock, process)
+}
+
+func TestSocketMerge(t *testing.T) {
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	if err := sock.Open(); err == nil {
+		bs := []byte("haha111")
+		for i := 0; i < 10; i++ {
+			sock.WriteWithMerge(append(bs, []byte(fmt.Sprint(i))...))
+		}
+	}
+	ProcessMerge(sock, process2)
 }

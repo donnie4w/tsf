@@ -105,6 +105,10 @@ type TConfiguration struct {
 	//Whether the packet size is 64-bit binary
 	Packet64Bits bool
 
+	//Whether compressed merge data
+	SnappyMergeData bool
+	//Whether process is synchronize
+	Sync bool
 	// If <= 0, DEFAULT_MAX_MESSAGE_SIZE will be used instead.
 	MaxMessageSize int32
 

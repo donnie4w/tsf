@@ -25,15 +25,20 @@ package server
 import (
 	"context"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/donnie4w/tsf/util"
 )
 
 type TSocket struct {
-	conn *socketConn
-	addr net.Addr
-	cfg  *TConfiguration
+	conn      *socketConn
+	addr      net.Addr
+	cfg       *TConfiguration
+	_dataChan chan []byte
+	mux       *sync.Mutex
+	_incount  int64
 }
 
 // tcpAddr is a naive implementation of net.Addr that does nothing extra.
@@ -83,6 +88,7 @@ func NewTSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSocket {
 	return &TSocket{
 		addr: addr,
 		cfg:  conf,
+		mux:  &sync.Mutex{},
 	}
 }
 
@@ -102,6 +108,7 @@ func NewTSocketFromConnConf(conn net.Conn, conf *TConfiguration) *TSocket {
 		conn: wrapSocketConn(conn),
 		addr: conn.RemoteAddr(),
 		cfg:  conf,
+		mux:  &sync.Mutex{},
 	}
 }
 
@@ -240,6 +247,21 @@ func (p *TSocket) WriteWithLen(buf []byte) (int, error) {
 	}
 	copy(bys[ln:], buf)
 	return p.Write(bys)
+}
+
+func (p *TSocket) WriteWithMerge(buf []byte) {
+	if p._dataChan == nil {
+		p.mux.Lock()
+		if p._dataChan == nil {
+			p._dataChan = make(chan []byte, 1<<13)
+		}
+		p.mux.Unlock()
+	}
+	p._dataChan <- buf
+	atomic.AddInt64(&p._incount, 1)
+	if p.mux.TryLock() {
+		go writeMerge(p)
+	}
 }
 
 func (p *TSocket) Flush(ctx context.Context) error {
