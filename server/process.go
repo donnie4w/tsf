@@ -66,8 +66,12 @@ func _readsocket(socket *TSocket, ln int64, buf *Buffer, bs []byte) (err error) 
 	return
 }
 
-func writeMerge(socket *TSocket) (int, error) {
+func writeMerge(socket *TSocket) (i int, err error) {
 	defer socket.mux.Unlock()
+	return _writeMerge(socket)
+}
+
+func _writeMerge(socket *TSocket) (i int, err error) {
 	ln, isbit64 := 4, socket.cfg.Packet64Bits
 	if isbit64 {
 		ln = 8
@@ -98,7 +102,11 @@ func writeMerge(socket *TSocket) (int, error) {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(ds))))
 	}
 	copy(bys[ln:], ds)
-	return socket.Write(bys)
+	i, err = socket.Write(bys)
+	if socket._incount > 0 {
+		return _writeMerge(socket)
+	}
+	return
 }
 
 func ProcessMerge(socket *TSocket, processPacKet func(socket *TSocket, pkt *Packet) error) (err error) {
