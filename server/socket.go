@@ -315,6 +315,12 @@ func (p *TSocket) RemainingBytes() (num_bytes uint64) {
 	return maxSize // the truth is, we just don't know unless framed is used
 }
 
+func (p *TSocket) Process(fn func(pkt *Packet) error) {
+	Process(p, func(socket TsfSocket, pkt *Packet) error {
+		return fn(pkt)
+	})
+}
+
 func (p *TSocket) ProcessMerge(fn func(pkt *Packet) error) {
 	ProcessMerge(p, func(socket TsfSocket, pkt *Packet) error {
 		return fn(pkt)
