@@ -37,14 +37,14 @@ func TestServerMerge(t *testing.T) {
 	}
 }
 
-func process(sock *TSocket, pkt *packet.Packet) (err error) {
+func process(sock TsfSocket, pkt *packet.Packet) (err error) {
 	fmt.Println(string(pkt.ToBytes()))
 	time.Sleep(3 * time.Second)
 	sock.WriteWithLen(pkt.ToBytes())
 	return
 }
 
-func process2(sock *TSocket, pkt *packet.Packet) (err error) {
+func process2(sock TsfSocket, pkt *packet.Packet) (err error) {
 	fmt.Println(string(pkt.ToBytes()))
 	time.Sleep(3 * time.Second)
 	sock.WriteWithMerge(pkt.ToBytes())
