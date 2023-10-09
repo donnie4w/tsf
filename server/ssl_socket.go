@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	. "github.com/donnie4w/tsf/packet"
 	"github.com/donnie4w/tsf/util"
 )
 
@@ -308,3 +309,10 @@ func (p *TSSLSocket) RemainingBytes() (num_bytes uint64) {
 }
 
 var _ TConfigurationSetter = (*TSSLSocket)(nil)
+
+
+func (p *TSSLSocket) ProcessMerge(fn func(pkt *Packet) error) {
+	ProcessMerge(p, func(socket TsfSocket, pkt *Packet) error {
+		return fn(pkt)
+	})
+}
