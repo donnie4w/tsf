@@ -131,8 +131,8 @@ func NewTSSLSocketFromConnTimeout(conn net.Conn, cfg *tls.Config, socketTimeout 
 }
 func (p *TSSLSocket) _Incount() int64        { return p._incount }
 func (p *TSSLSocket) _SubAndGet() int64      { return atomic.AddInt64(&p._incount, -1) }
-func (p *TSSLSocket) IsValid() bool         { return p.conn.isValid() }
-func (p *TSSLSocket) Cfg() *TConfiguration  { return p.cfg }
+func (p *TSSLSocket) IsValid() bool          { return p.conn.isValid() }
+func (p *TSSLSocket) Cfg() *TConfiguration   { return p.cfg }
 func (p *TSSLSocket) _Mux() *sync.Mutex      { return p.mux }
 func (p *TSSLSocket) _DataChan() chan []byte { return p._dataChan }
 
@@ -310,6 +310,11 @@ func (p *TSSLSocket) RemainingBytes() (num_bytes uint64) {
 
 var _ TConfigurationSetter = (*TSSLSocket)(nil)
 
+func (p *TSSLSocket) Process(fn func(pkt *Packet) error) {
+	Process(p, func(socket TsfSocket, pkt *Packet) error {
+		return fn(pkt)
+	})
+}
 
 func (p *TSSLSocket) ProcessMerge(fn func(pkt *Packet) error) {
 	ProcessMerge(p, func(socket TsfSocket, pkt *Packet) error {
