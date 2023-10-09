@@ -120,6 +120,12 @@ func NewTSocketFromConnTimeout(conn net.Conn, socketTimeout time.Duration) *TSoc
 		// noPropagation: true,
 	})
 }
+func (p *TSocket) _Incount() int64        { return p._incount }
+func (p *TSocket) _SubAndGet() int64      { return atomic.AddInt64(&p._incount, -1) }
+func (p *TSocket) IsValid() bool         { return p.conn.isValid() }
+func (p *TSocket) Cfg() *TConfiguration  { return p.cfg }
+func (p *TSocket) _Mux() *sync.Mutex      { return p.mux }
+func (p *TSocket) _DataChan() chan []byte { return p._dataChan }
 
 // SetTConfiguration implements TConfigurationSetter.
 //
