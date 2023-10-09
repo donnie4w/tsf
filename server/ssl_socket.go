@@ -23,7 +23,11 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/donnie4w/tsf/util"
 )
 
 type TSSLSocket struct {
@@ -36,6 +40,10 @@ type TSSLSocket struct {
 	addr net.Addr
 
 	cfg *TConfiguration
+
+	_dataChan chan []byte
+	mux       *sync.Mutex
+	_incount  int64
 }
 
 // NewTSSLSocketConf creates a net.Conn-backed TTransport, given a host and port.
@@ -57,6 +65,7 @@ func NewTSSLSocketConf(hostPort string, conf *TConfiguration) *TSSLSocket {
 	return &TSSLSocket{
 		hostPort: hostPort,
 		cfg:      conf,
+		mux:      &sync.Mutex{},
 	}
 }
 
@@ -85,6 +94,7 @@ func NewTSSLSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSSLSocket 
 	return &TSSLSocket{
 		addr: addr,
 		cfg:  conf,
+		mux:  &sync.Mutex{},
 	}
 }
 
@@ -105,6 +115,7 @@ func NewTSSLSocketFromConnConf(conn net.Conn, conf *TConfiguration) *TSSLSocket 
 		conn: wrapSocketConn(conn),
 		addr: conn.RemoteAddr(),
 		cfg:  conf,
+		mux:  &sync.Mutex{},
 	}
 }
 
@@ -117,6 +128,12 @@ func NewTSSLSocketFromConnTimeout(conn net.Conn, cfg *tls.Config, socketTimeout 
 		// noPropagation: true,
 	})
 }
+func (p *TSSLSocket) _Incount() int64        { return p._incount }
+func (p *TSSLSocket) _SubAndGet() int64      { return atomic.AddInt64(&p._incount, -1) }
+func (p *TSSLSocket) IsValid() bool         { return p.conn.isValid() }
+func (p *TSSLSocket) Cfg() *TConfiguration  { return p.cfg }
+func (p *TSSLSocket) _Mux() *sync.Mutex      { return p.mux }
+func (p *TSSLSocket) _DataChan() chan []byte { return p._dataChan }
 
 // SetTConfiguration implements TConfigurationSetter.
 //
@@ -241,6 +258,37 @@ func (p *TSSLSocket) Write(buf []byte) (int, error) {
 	}
 	p.pushDeadline(false, true)
 	return p.conn.Write(buf)
+}
+
+func (p *TSSLSocket) WriteWithLen(buf []byte) (int, error) {
+	ln := 4
+	if p.cfg.Packet64Bits {
+		ln = 8
+	}
+	bys := make([]byte, ln+len(buf))
+	if p.cfg.Packet64Bits {
+		copy(bys[:ln], util.Int64ToBytes(int64(len(buf))))
+	} else {
+		copy(bys[:ln], util.Int32ToBytes(int32(len(buf))))
+	}
+	copy(bys[ln:], buf)
+	return p.Write(bys)
+}
+
+func (p *TSSLSocket) WriteWithMerge(buf []byte) (i int, err error) {
+	if p._dataChan == nil {
+		p.mux.Lock()
+		if p._dataChan == nil {
+			p._dataChan = make(chan []byte, 1<<13)
+		}
+		p.mux.Unlock()
+	}
+	p._dataChan <- buf
+	atomic.AddInt64(&p._incount, 1)
+	if p.mux.TryLock() {
+		i, err = writeMerge(p)
+	}
+	return
 }
 
 func (p *TSSLSocket) Flush(ctx context.Context) error {
