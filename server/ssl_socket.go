@@ -27,8 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/donnie4w/gofer/util"
 	. "github.com/donnie4w/tsf/packet"
-	"github.com/donnie4w/tsf/util"
 )
 
 type TSSLSocket struct {
