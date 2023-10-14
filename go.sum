@@ -1,6 +1,8 @@
-github.com/donnie4w/gofer v0.0.0-20230821151943-81c71c776924 h1:MG/IRpN39Cv6enEGrL0mqmgF0HI07jb6ARdmnEMYxb0=
-github.com/donnie4w/gofer v0.0.0-20230821151943-81c71c776924/go.mod h1:x2FACHumiId2KXUEsrkNoTgqFrssA5W69Y+n2R35cSY=
-github.com/donnie4w/gofer v0.0.0-20230823030455-ddc7fb88ffe0 h1:c0fS4c+0gG6nFgb9ENIDn0iCiWoxC6sNJ18zsiZQjoc=
-github.com/donnie4w/gofer v0.0.0-20230823030455-ddc7fb88ffe0/go.mod h1:x2FACHumiId2KXUEsrkNoTgqFrssA5W69Y+n2R35cSY=
-github.com/donnie4w/simplelog v0.0.0-20230813073223-795779b98a18 h1:hsaZ6HkTaQN7phgZ1GX4GpEQ8Iy+sfqIWTmsfnNpABE=
-github.com/donnie4w/simplelog v0.0.0-20230813073223-795779b98a18/go.mod h1:rSopGC/ogVfAdi7CkgZwZYJGRjb4LfhrfQwreqImT+E=
+github.com/donnie4w/gofer v0.0.0-20231013162521-26a1c467769b h1:WrIIZbVTVpgb6csaUKmg37aDQ9HCxb0u7i6RmXiRV94=
+github.com/donnie4w/gofer v0.0.0-20231013162521-26a1c467769b/go.mod h1:x2FACHumiId2KXUEsrkNoTgqFrssA5W69Y+n2R35cSY=
+github.com/donnie4w/gothrift v0.0.0-20230914065902-8bf311a8a055 h1:ltpxjnhAeuErDaXLFCKQ1e8/i5SXZXhXaWjXJphCFJM=
+github.com/donnie4w/gothrift v0.0.0-20230914065902-8bf311a8a055/go.mod h1:Uc0QnOpnPQy7TT2yFi1EZPi09gLPClsoh5hVOndJ4l0=
+github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
+github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
+golang.org/x/exp v0.0.0-20231006140011-7918f672742d h1:jtJma62tbqLibJ5sFQz8bKtEM8rJBtfilJ2qTU199MI=
+golang.org/x/exp v0.0.0-20231006140011-7918f672742d/go.mod h1:ldy0pHrwJyGW56pPQzzkH36rKxoZW1tw7ZJpeKx+hdo=
