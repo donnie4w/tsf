@@ -10,8 +10,8 @@ import (
 	"fmt"
 
 	. "github.com/donnie4w/gofer/buffer"
+	"github.com/donnie4w/gofer/util"
 	. "github.com/donnie4w/tsf/packet"
-	"github.com/donnie4w/tsf/util"
 )
 
 func Process(socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Packet) error) (err error) {
