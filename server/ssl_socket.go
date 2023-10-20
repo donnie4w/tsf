@@ -22,6 +22,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -253,15 +254,21 @@ func (p *TSSLSocket) Read(buf []byte) (int, error) {
 	return n, NewTTransportExceptionFromError(err)
 }
 
-func (p *TSSLSocket) Write(buf []byte) (int, error) {
+func (p *TSSLSocket) Write(buf []byte) (i int, err error) {
 	if !p.conn.isValid() {
 		return 0, NewTTransportException(NOT_OPEN, "Connection not open")
+	}
+	if err = overMessageSize(buf, p.cfg); err != nil {
+		return
 	}
 	p.pushDeadline(false, true)
 	return p.conn.Write(buf)
 }
 
-func (p *TSSLSocket) WriteWithLen(buf []byte) (int, error) {
+func (p *TSSLSocket) WriteWithLen(buf []byte) (i int, err error) {
+	if err = overMessageSize(buf, p.cfg); err != nil {
+		return
+	}
 	ln := 4
 	if p.cfg.Packet64Bits {
 		ln = 8
@@ -280,9 +287,16 @@ func (p *TSSLSocket) WriteWithMerge(buf []byte) (i int, err error) {
 	if p._dataChan == nil {
 		p.mux.Lock()
 		if p._dataChan == nil {
-			p._dataChan = make(chan []byte, 1<<13)
+			p._dataChan = make(chan []byte, DEFAULT_SOCKET_CHAN_LEN)
 		}
 		p.mux.Unlock()
+	}
+	if p._incount >= DEFAULT_SOCKET_CHAN_LEN {
+		err = errors.New("too much blocking data")
+		return
+	}
+	if err = overMessageSize(buf, p.cfg); err != nil {
+		return
 	}
 	p._dataChan <- buf
 	atomic.AddInt64(&p._incount, 1)
