@@ -37,6 +37,8 @@ const (
 
 	DEFAULT_CONNECT_TIMEOUT = 0
 	DEFAULT_SOCKET_TIMEOUT  = 0
+
+	DEFAULT_SOCKET_CHAN_LEN = 1 << 15
 )
 
 // TConfiguration defines some configurations shared between TTransport,
