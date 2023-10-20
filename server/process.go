@@ -7,7 +7,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 
 	. "github.com/donnie4w/gofer/buffer"
 	"github.com/donnie4w/gofer/util"
@@ -32,10 +31,10 @@ func Process(socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Packet)
 		} else {
 			ln = int64(util.BytesToInt32(headBs))
 		}
-		if ln > int64(socket.Cfg().MaxMessageSize) {
-			err = errors.New("MaxMessageSize:" + fmt.Sprint(socket.Cfg().MaxMessageSize) + " ,but get " + fmt.Sprint(ln))
+		if ln <= 0 {
 			break
 		}
+
 		bodyBs := make([]byte, int(ln))
 		if err = readStream(socket, bodyBs, int(ln)); err == nil {
 			pkt := Wrap((*Buffer)(&bodyBs))
@@ -52,7 +51,7 @@ func Process(socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Packet)
 			break
 		}
 	}
-	return
+	return errors.New("socket close")
 }
 
 // func readsocket(socket *TSocket, ln int64, buf *Buffer) (err error) {
@@ -128,7 +127,6 @@ func ProcessMerge(socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Pa
 	defer recover()
 	defer socket.Close()
 	for socket.IsValid() {
-		// bufhead := NewBuffer()
 		headBit := 4
 		if socket.Cfg().Packet64Bits {
 			headBit = 8
@@ -143,17 +141,23 @@ func ProcessMerge(socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Pa
 		} else {
 			ln = int64(util.BytesToInt32(headBs))
 		}
+		if ln <= 0 {
+			break
+		}
 		bodyBs := make([]byte, ln)
 		if err = readStream(socket, bodyBs, int(ln)); err == nil {
 			if socket.Cfg().SnappyMergeData {
 				bodyBs = util.SnappyDecode(bodyBs)
+			}
+			if bodyBs == nil || len(bodyBs) == 0 {
+				break
 			}
 			_processMerge(bodyBs, socket, processPacKet)
 		} else {
 			break
 		}
 	}
-	return
+	return errors.New("socket close")
 }
 
 func _processMerge(bs []byte, socket TsfSocket, processPacKet func(socket TsfSocket, pkt *Packet) error) {
