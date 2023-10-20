@@ -30,7 +30,10 @@ func TestServerMerge(t *testing.T) {
 			for {
 				if socket, err := serversocket.Accept(); err == nil {
 					socket.SetTConfiguration(&TConfiguration{SnappyMergeData: true})
-					go ProcessMerge(socket, process2)
+					go socket.ProcessMerge(func(pkt *packet.Packet) error {
+						fmt.Println(len(pkt.ToBytes()))
+						return nil
+					})
 				}
 			}
 		}
@@ -44,18 +47,13 @@ func process(sock TsfSocket, pkt *packet.Packet) (err error) {
 	return
 }
 
-func process2(sock TsfSocket, pkt *packet.Packet) (err error) {
-	fmt.Println(string(pkt.ToBytes()))
-	time.Sleep(3 * time.Second)
-	sock.WriteWithMerge(pkt.ToBytes())
-	return
-}
-
 func TestSocket(t *testing.T) {
 	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second})
 	if err := sock.Open(); err == nil {
-		bs := []byte("haha111")
-		sock.WriteWithLen(bs)
+		for i := 0; i < 1<<10; i++ {
+			fmt.Println(i)
+			sock.WriteWithLen([]byte(fmt.Sprint(i)))
+		}
 	}
 	Process(sock, process)
 }
@@ -63,10 +61,31 @@ func TestSocket(t *testing.T) {
 func TestSocketMerge(t *testing.T) {
 	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
 	if err := sock.Open(); err == nil {
-		bs := []byte("haha111")
-		for i := 0; i < 10; i++ {
-			sock.WriteWithMerge(append(bs, []byte(fmt.Sprint(i))...))
+		for i := 0; i < 100; i++ {
+			go sock.WriteWithMerge([]byte(fmt.Sprint(i)))
 		}
 	}
-	ProcessMerge(sock, process2)
+	sock.ProcessMerge(func(pkt *packet.Packet) (err error) {
+		time.Sleep(3 * time.Second)
+		sock.WriteWithMerge(pkt.ToBytes())
+		return
+	})
+}
+
+func BenchmarkSocketMerge(b *testing.B) {
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	if sock.Open() != nil {
+		panic("open failed")
+	}
+	i := 0
+	go sock.ProcessMerge(func(pkt *packet.Packet) (err error) {
+		// fmt.Println(string(pkt.ToBytes()))
+		return
+	})
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			i++
+			sock.WriteWithMerge([]byte(fmt.Sprint(i, "123456789")))
+		}
+	})
 }
