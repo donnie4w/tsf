@@ -12,15 +12,12 @@ type TsfSocket interface {
 	_SubAndGet() int64
 	_Mux() *sync.Mutex
 	_DataChan() chan []byte
+	writebytes(buf []byte) (int, error)
 	IsValid() bool
 	Cfg() *TConfiguration
-
 	Write([]byte) (int, error)
 	Read([]byte) (int, error)
-	
-	WriteWithLen(buf []byte) (int, error)
 	WriteWithMerge(buf []byte) (i int, err error)
-
 	Interrupt() error 
 	Close() error
 }
