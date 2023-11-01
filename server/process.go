@@ -116,7 +116,7 @@ func _writeMerge(socket TsfSocket) (i int, err error) {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(ds))))
 	}
 	copy(bys[ln:], ds)
-	i, err = socket.Write(bys)
+	i, err = socket.writebytes(bys)
 	if socket._Incount() > 0 {
 		return _writeMerge(socket)
 	}
