@@ -139,6 +139,10 @@ type TConfiguration struct {
 	// noPropagation bool
 }
 
+func newTConfiguration() *TConfiguration {
+	return &TConfiguration{MaxMessageSize: DEFAULT_MAX_MESSAGE_SIZE}
+}
+
 // GetMaxMessageSize returns the max message size an implementation should
 // follow.
 //
