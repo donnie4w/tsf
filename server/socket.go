@@ -38,8 +38,8 @@ type TSocket struct {
 	conn      *socketConn
 	addr      net.Addr
 	cfg       *TConfiguration
-	_dataChan chan []byte
 	mux       *sync.Mutex
+	_dataChan chan []byte
 	_incount  int64
 }
 
@@ -139,9 +139,7 @@ func (p *TSocket) SetTConfiguration(conf *TConfiguration) {
 // Sets the connect timeout
 func (p *TSocket) SetConnTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{
-			// noPropagation: true,
-		}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.ConnectTimeout = timeout
 	return nil
@@ -150,9 +148,7 @@ func (p *TSocket) SetConnTimeout(timeout time.Duration) error {
 // Sets the socket timeout
 func (p *TSocket) SetSocketTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{
-			// noPropagation: true,
-		}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.SocketTimeout = timeout
 	return nil
@@ -161,7 +157,7 @@ func (p *TSocket) SetSocketTimeout(timeout time.Duration) error {
 // Whether compressed merge data
 func (p *TSocket) SetSnappyMergeData(compress bool) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.SnappyMergeData = compress
 	return nil
@@ -170,7 +166,7 @@ func (p *TSocket) SetSnappyMergeData(compress bool) error {
 // Whether the packet size is 64-bit binary
 func (p *TSocket) SetPacket64Bits(isPacket64Bits bool) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.Packet64Bits = isPacket64Bits
 	return nil
@@ -179,7 +175,7 @@ func (p *TSocket) SetPacket64Bits(isPacket64Bits bool) error {
 // Whether process is synchronize
 func (p *TSocket) SetSyncProcess(isSync bool) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.SyncProcess = isSync
 	return nil
@@ -261,7 +257,7 @@ func (p *TSocket) Read(buf []byte) (int, error) {
 	return n, NewTTransportExceptionFromError(err)
 }
 
-func (p *TSocket) Write(buf []byte) (i int, err error) {
+func (p *TSocket) writebytes(buf []byte) (i int, err error) {
 	if !p.conn.isValid() {
 		return 0, NewTTransportException(NOT_OPEN, "Connection not open")
 	}
@@ -272,7 +268,7 @@ func (p *TSocket) Write(buf []byte) (i int, err error) {
 	return p.conn.Write(buf)
 }
 
-func (p *TSocket) WriteWithLen(buf []byte) (i int, err error) {
+func (p *TSocket) Write(buf []byte) (i int, err error) {
 	if err = overMessageSize(buf, p.cfg); err != nil {
 		return
 	}
@@ -287,7 +283,7 @@ func (p *TSocket) WriteWithLen(buf []byte) (i int, err error) {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(buf))))
 	}
 	copy(bys[ln:], buf)
-	return p.Write(bys)
+	return p.writebytes(bys)
 }
 
 func (p *TSocket) WriteWithMerge(buf []byte) (i int, err error) {
