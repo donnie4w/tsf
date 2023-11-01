@@ -43,7 +43,7 @@ func TestServerMerge(t *testing.T) {
 func process(sock TsfSocket, pkt *packet.Packet) (err error) {
 	fmt.Println(string(pkt.ToBytes()))
 	time.Sleep(3 * time.Second)
-	sock.WriteWithLen(pkt.ToBytes())
+	sock.Write(pkt.ToBytes())
 	return
 }
 
@@ -52,7 +52,7 @@ func TestSocket(t *testing.T) {
 	if err := sock.Open(); err == nil {
 		for i := 0; i < 1<<10; i++ {
 			fmt.Println(i)
-			sock.WriteWithLen([]byte(fmt.Sprint(i)))
+			sock.Write([]byte(fmt.Sprint(i)))
 		}
 	}
 	Process(sock, process)
