@@ -147,7 +147,7 @@ func (p *TSSLSocket) SetTConfiguration(conf *TConfiguration) {
 // Sets the connect timeout
 func (p *TSSLSocket) SetConnTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.ConnectTimeout = timeout
 	return nil
@@ -156,7 +156,7 @@ func (p *TSSLSocket) SetConnTimeout(timeout time.Duration) error {
 // Sets the socket timeout
 func (p *TSSLSocket) SetSocketTimeout(timeout time.Duration) error {
 	if p.cfg == nil {
-		p.cfg = &TConfiguration{}
+		p.cfg = newTConfiguration()
 	}
 	p.cfg.SocketTimeout = timeout
 	return nil
@@ -254,7 +254,7 @@ func (p *TSSLSocket) Read(buf []byte) (int, error) {
 	return n, NewTTransportExceptionFromError(err)
 }
 
-func (p *TSSLSocket) Write(buf []byte) (i int, err error) {
+func (p *TSSLSocket) writebytes(buf []byte) (i int, err error) {
 	if !p.conn.isValid() {
 		return 0, NewTTransportException(NOT_OPEN, "Connection not open")
 	}
@@ -265,7 +265,7 @@ func (p *TSSLSocket) Write(buf []byte) (i int, err error) {
 	return p.conn.Write(buf)
 }
 
-func (p *TSSLSocket) WriteWithLen(buf []byte) (i int, err error) {
+func (p *TSSLSocket) Write(buf []byte) (i int, err error) {
 	if err = overMessageSize(buf, p.cfg); err != nil {
 		return
 	}
@@ -280,7 +280,7 @@ func (p *TSSLSocket) WriteWithLen(buf []byte) (i int, err error) {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(buf))))
 	}
 	copy(bys[ln:], buf)
-	return p.Write(bys)
+	return p.writebytes(bys)
 }
 
 func (p *TSSLSocket) WriteWithMerge(buf []byte) (i int, err error) {
