@@ -25,11 +25,29 @@ package server
 import (
 	"errors"
 	"fmt"
+
+	"github.com/donnie4w/simplelog/logging"
 )
 
+var log = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
+
+func SetLog(on bool) {
+	if on {
+		log.SetLevel(logging.LEVEL_ERROR)
+	} else {
+		log.SetLevel(logging.LEVEL_OFF)
+	}
+}
+
 func overMessageSize(buf []byte, cfg *TConfiguration) (err error) {
-	if len(buf) > int(cfg.MaxMessageSize) {
-		return errors.New(fmt.Sprint("maxMessageSize:", cfg.MaxMessageSize, ",got ", len(buf)))
+	mms := int(cfg.MaxMessageSize)
+	if cfg.MaxMessageSize <= 0 {
+		mms = DEFAULT_MAX_MESSAGE_SIZE
+	}
+	if len(buf) > mms {
+		s := fmt.Sprint("tsf error, maxMessageSize:", mms, ",got ", len(buf))
+		log.Error(s)
+		return errors.New(s)
 	}
 	return
 }
