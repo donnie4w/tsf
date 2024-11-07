@@ -23,13 +23,13 @@ import (
 	"github.com/donnie4w/gofer/util"
 )
 
-func Process(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Packet) error) (err error) {
+func Process(socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet) error) (err error) {
 	defer Recoverable(&err)
 	defer socket.Close()
 	for socket.IsValid() {
 		headBit := 4
 		var headBs []byte
-		if socket.Cfg().Packet64Bits {
+		if socket.Cfg().Bit64 {
 			headBit = 8
 			var _headBs [8]byte
 			headBs = _headBs[:]
@@ -37,12 +37,11 @@ func Process(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Packet)
 			var _headBs [4]byte
 			headBs = _headBs[:]
 		}
-		//headBs := make([]byte, headBit)
 		if err = readStream(socket, headBs, headBit); err != nil {
 			break
 		}
 		var ln int64
-		if socket.Cfg().Packet64Bits {
+		if socket.Cfg().Bit64 {
 			ln = util.BytesToInt64(headBs)
 		} else {
 			ln = int64(util.BytesToInt32(headBs))
@@ -55,13 +54,13 @@ func Process(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Packet)
 		if err = readStream(socket, bodyBs, int(ln)); err == nil {
 			pkt := Wrap((*buffer.Buffer)(&bodyBs))
 			pkt.Len = int(ln)
-			if processPacKet != nil {
+			if processHandler != nil {
 				if socket.Cfg().SyncProcess {
-					processPacKet(socket, pkt)
+					processHandler(socket, pkt)
 				} else {
 					go func() {
 						defer Recoverable(nil)
-						processPacKet(socket, pkt)
+						processHandler(socket, pkt)
 					}()
 				}
 			}
@@ -98,18 +97,14 @@ func readStream(socket tsfsocket, bs []byte, ln int) (err error) {
 	return
 }
 
-func writeMerge(socket tsfsocket) (i int, err error) {
-	defer socket._Mux().Unlock()
-	return _writeMerge(socket)
-}
-
-func _writeMerge(socket tsfsocket) (i int, err error) {
-	ln, isbit64 := 4, socket.Cfg().Packet64Bits
+func writeMerge(socket tsfsocket) (int, error) {
+START:
+	ln, isbit64 := 4, socket.Cfg().Bit64
 	if isbit64 {
 		ln = 8
 	}
 	buf := buffer.NewBuffer()
-	for bs := range socket._DataChan() {
+	for bs := range socket.dataChan() {
 		bys := make([]byte, ln+len(bs))
 		if isbit64 {
 			copy(bys[:ln], util.Int64ToBytes(int64(len(bs))))
@@ -118,13 +113,13 @@ func _writeMerge(socket tsfsocket) (i int, err error) {
 		}
 		copy(bys[ln:], bs)
 		buf.Write(bys)
-		if socket._SubAndGet() <= 0 {
+		if socket.pendSub() <= 0 {
 			break
 		}
 	}
 
 	ds := buf.Bytes()
-	if socket.Cfg().SnappyMergeData {
+	if socket.Cfg().Snappy {
 		ds = util.SnappyEncode(ds)
 	}
 	bys := make([]byte, ln+len(ds))
@@ -134,20 +129,20 @@ func _writeMerge(socket tsfsocket) (i int, err error) {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(ds))))
 	}
 	copy(bys[ln:], ds)
-	i, err = socket.writebytes(bys)
-	if socket._Incount() > 0 {
-		return _writeMerge(socket)
+	i, err := socket.writeHandle(bys)
+	if err == nil && socket.pendNumber() > 0 {
+		goto START
 	}
-	return
+	return i, err
 }
 
-func ProcessMerge(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Packet) error) (err error) {
+func ProcessMerge(socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet) error) (err error) {
 	defer Recoverable(&err)
 	defer socket.Close()
 	for socket.IsValid() {
 		var headBs []byte
 		headBit := 4
-		if socket.Cfg().Packet64Bits {
+		if socket.Cfg().Bit64 {
 			headBit = 8
 			var _headBs [8]byte
 			headBs = _headBs[:]
@@ -160,7 +155,7 @@ func ProcessMerge(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Pa
 			break
 		}
 		var ln int64
-		if socket.Cfg().Packet64Bits {
+		if socket.Cfg().Bit64 {
 			ln = util.BytesToInt64(headBs)
 		} else {
 			ln = int64(util.BytesToInt32(headBs))
@@ -170,13 +165,13 @@ func ProcessMerge(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Pa
 		}
 		bodyBs := make([]byte, ln)
 		if err = readStream(socket, bodyBs, int(ln)); err == nil {
-			if socket.Cfg().SnappyMergeData {
+			if socket.Cfg().Snappy {
 				bodyBs = util.SnappyDecode(bodyBs)
 			}
 			if bodyBs == nil || len(bodyBs) == 0 {
 				break
 			}
-			_processMerge(bodyBs, socket, processPacKet)
+			_processMerge(bodyBs, socket, processHandler)
 		} else {
 			break
 		}
@@ -184,30 +179,33 @@ func ProcessMerge(socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Pa
 	return errors.New("socket close")
 }
 
-func _processMerge(bs []byte, socket tsfsocket, processPacKet func(socket TsfSocket, pkt *Packet) error) {
+func _processMerge(bs []byte, socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet) error) {
+START:
 	if len(bs) > 0 {
 		var ln int64
 		bit := int64(4)
-		if socket.Cfg().Packet64Bits {
+		if socket.Cfg().Bit64 {
 			bit = 8
 			ln = util.BytesToInt64(bs[:bit])
 		} else {
 			ln = int64(util.BytesToInt32(bs[:bit]))
 		}
 		pkt := &Packet{Len: int(ln), Buf: buffer.NewBufferBySlice(bs[bit : bit+ln])}
-		if processPacKet != nil {
+		if processHandler != nil {
 			if socket.Cfg().SyncProcess {
-				processPacKet(socket, pkt)
+				processHandler(socket, pkt)
 			} else {
 				go func() {
 					defer Recoverable(nil)
-					processPacKet(socket, pkt)
+					processHandler(socket, pkt)
 				}()
 			}
 		}
 
 		if nbs := bs[bit+ln:]; len(nbs) > 0 {
-			_processMerge(nbs, socket, processPacKet)
+			//_processMerge(nbs, socket, processHandler)
+			bs = nbs
+			goto START
 		}
 	}
 }
