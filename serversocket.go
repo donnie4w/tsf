@@ -47,10 +47,8 @@ type TServerSocket struct {
 	listener      net.Listener
 	addr          net.Addr
 	clientTimeout time.Duration
-
-	// Protects the interrupted value to make it thread safe.
-	mu          sync.RWMutex
-	interrupted bool
+	mu            sync.RWMutex
+	interrupted   bool
 }
 
 func NewTServerSocket(listenAddr string) (*TServerSocket, error) {
@@ -63,12 +61,6 @@ func NewTServerSocketTimeout(listenAddr string, clientTimeout time.Duration) (*T
 		return nil, err
 	}
 	return &TServerSocket{addr: addr, clientTimeout: clientTimeout}, nil
-}
-
-// NewTServerSocketFromAddrTimeout
-// Creates a TServerSocket from a net.Addr
-func NewTServerSocketFromAddrTimeout(addr net.Addr, clientTimeout time.Duration) *TServerSocket {
-	return &TServerSocket{addr: addr, clientTimeout: clientTimeout}
 }
 
 func (p *TServerSocket) Listen() error {
@@ -102,11 +94,13 @@ func (p *TServerSocket) Accept() (*TSocket, error) {
 	}
 
 	conn, err := listener.Accept()
-	id := uuid.NewUUID().Int64()
 	if err != nil {
 		return nil, NewTTransportExceptionFromError(err)
 	}
-	return NewTSocketFromConnTimeout(id, conn, p.clientTimeout), nil
+
+	cfg := newTConfiguration()
+	cfg.SocketTimeout = p.clientTimeout
+	return NewTSocketFromConnConf(uuid.NewUUID().Int64(), conn, cfg), nil
 }
 
 func (p *TServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
@@ -117,16 +111,7 @@ func (p *TServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
 					if conf != nil {
 						socket.SetTConfiguration(conf)
 					}
-					defer Recoverable(nil)
-					if tc.OnClose != nil {
-						defer tc.OnClose(socket)
-					}
-					if tc.OnOpen != nil {
-						tc.OnOpen(socket)
-					}
-					if err := Process(socket, tc.Handler); err != nil && tc.OnError != nil {
-						tc.OnError(err, socket)
-					}
+					socket.On(tc)
 				}()
 			}
 		}
@@ -177,6 +162,5 @@ func (p *TServerSocket) Interrupt() error {
 	p.interrupted = true
 	p.mu.Unlock()
 	p.Close()
-
 	return nil
 }
