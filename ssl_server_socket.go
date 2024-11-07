@@ -86,11 +86,13 @@ func (p *TSSLServerSocket) Accept() (*TSSLSocket, error) {
 		return nil, NewTTransportException(NOT_OPEN, "No underlying server socket")
 	}
 	conn, err := p.listener.Accept()
-	id := uuid.NewUUID().Int64()
 	if err != nil {
 		return nil, NewTTransportExceptionFromError(err)
 	}
-	return NewTSSLSocketFromConnTimeout(id, conn, p.cfg, p.clientTimeout), nil
+	cfg := newTConfiguration()
+	cfg.SocketTimeout = p.clientTimeout
+	cfg.TLSConfig = p.cfg
+	return NewTSSLSocketFromConnConf(uuid.NewUUID().Int64(), conn, cfg), nil
 }
 
 func (p *TSSLServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
@@ -101,16 +103,7 @@ func (p *TSSLServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error)
 					if conf != nil {
 						socket.SetTConfiguration(conf)
 					}
-					defer Recoverable(nil)
-					if tc.OnClose != nil {
-						defer tc.OnClose(socket)
-					}
-					if tc.OnOpen != nil {
-						tc.OnOpen(socket)
-					}
-					if err := Process(socket, tc.Handler); err != nil && tc.OnError != nil {
-						tc.OnError(err, socket)
-					}
+					socket.On(tc)
 				}()
 			}
 		}
