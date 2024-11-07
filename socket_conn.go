@@ -45,7 +45,6 @@ import (
 // socketConn is a wrapped net.Conn that tries to do connectivity check.
 type socketConn struct {
 	net.Conn
-
 	buffer [1]byte
 	closed atomic.Int32
 }
