@@ -40,6 +40,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/donnie4w/gofer/uuid"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -57,13 +58,13 @@ type TSSLSocket struct {
 	hostPort string
 	// addr is nil when hostPort is not "", and is only used when the
 	// TSSLSocket is constructed from a net.Addr.
-	addr net.Addr
-
-	cfg *TConfiguration
-
-	_dataChan chan []byte
-	mux       *sync.Mutex
-	_incount  int64
+	addr     net.Addr
+	cfg      *TConfiguration
+	mgChan   chan []byte
+	mux      *sync.Mutex
+	inputNum atomic.Int64
+	mgLock   atomic.Int32
+	ctx      context.Context
 }
 
 // NewTSSLSocketConf creates a net.Conn-backed TTransport, given a host and port.
@@ -89,26 +90,6 @@ func NewTSSLSocketConf(hostPort string, conf *TConfiguration) *TSSLSocket {
 	}
 }
 
-// Deprecated: Use NewTSSLSocketConf instead.
-// func NewTSSLSocket(hostPort string, cfg *tls.Config) (*TSSLSocket, error) {
-// 	return NewTSSLSocketConf(hostPort, &TConfiguration{
-// 		TLSConfig: cfg,
-
-// 		noPropagation: true,
-// 	}), nil
-// }
-
-// Deprecated: Use NewTSSLSocketConf instead.
-// func NewTSSLSocketTimeout(hostPort string, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) (*TSSLSocket, error) {
-// 	return NewTSSLSocketConf(hostPort, &TConfiguration{
-// 		ConnectTimeout: connectTimeout,
-// 		SocketTimeout:  socketTimeout,
-// 		TLSConfig:      cfg,
-
-// 		noPropagation: true,
-// 	}), nil
-// }
-
 // NewTSSLSocketFromAddrConf creates a TSSLSocket from a net.Addr.
 func NewTSSLSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSSLSocket {
 	return &TSSLSocket{
@@ -117,17 +98,6 @@ func NewTSSLSocketFromAddrConf(addr net.Addr, conf *TConfiguration) *TSSLSocket 
 		mux:  &sync.Mutex{},
 	}
 }
-
-// Deprecated: Use NewTSSLSocketFromAddrConf instead.
-// func NewTSSLSocketFromAddrTimeout(addr net.Addr, cfg *tls.Config, connectTimeout, socketTimeout time.Duration) *TSSLSocket {
-// 	return NewTSSLSocketFromAddrConf(addr, &TConfiguration{
-// 		ConnectTimeout: connectTimeout,
-// 		SocketTimeout:  socketTimeout,
-// 		TLSConfig:      cfg,
-
-// 		noPropagation: true,
-// 	})
-// }
 
 // NewTSSLSocketFromConnConf creates a TSSLSocket from an existing net.Conn.
 func NewTSSLSocketFromConnConf(id int64, conn net.Conn, conf *TConfiguration) *TSSLSocket {
@@ -140,32 +110,48 @@ func NewTSSLSocketFromConnConf(id int64, conn net.Conn, conf *TConfiguration) *T
 	}
 }
 
-// Deprecated: Use NewTSSLSocketFromConnConf instead.
-func NewTSSLSocketFromConnTimeout(id int64, conn net.Conn, cfg *tls.Config, socketTimeout time.Duration) *TSSLSocket {
-	return NewTSSLSocketFromConnConf(id, conn, &TConfiguration{
-		SocketTimeout: socketTimeout,
-		TLSConfig:     cfg,
-
-		// noPropagation: true,
-	})
-}
-func (p *TSSLSocket) ID() int64              { return p.id }
-func (p *TSSLSocket) _Incount() int64        { return p._incount }
-func (p *TSSLSocket) _SubAndGet() int64      { return atomic.AddInt64(&p._incount, -1) }
-func (p *TSSLSocket) IsValid() bool          { return p.conn.isValid() }
-func (p *TSSLSocket) Cfg() *TConfiguration   { return p.cfg }
-func (p *TSSLSocket) _Mux() *sync.Mutex      { return p.mux }
-func (p *TSSLSocket) _DataChan() chan []byte { return p._dataChan }
+func (p *TSSLSocket) ID() int64             { return p.id }
+func (p *TSSLSocket) IsValid() bool         { return p.conn.isValid() }
+func (p *TSSLSocket) Cfg() *TConfiguration  { return p.cfg }
+func (p *TSSLSocket) dataChan() chan []byte { return p.mgChan }
+func (p *TSSLSocket) pendNumber() int64     { return p.inputNum.Load() }
+func (p *TSSLSocket) pendSub() int64        { return p.inputNum.Add(-1) }
 
 // SetTConfiguration implements TConfigurationSetter.
 //
 // It can be used to change connect and socket timeouts.
 func (p *TSSLSocket) SetTConfiguration(conf *TConfiguration) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
 	p.cfg = conf
 }
 
-// Sets the connect timeout
+// SetContext sets the context for the TSocket instance.
+// This method is thread-safe in a multi-threaded environment because it uses a mutex to protect the write operation of the context.
+//
+// Parameters:
+//
+//	ctx context.Context: The new context to set.
+func (p *TSSLSocket) SetContext(ctx context.Context) {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	p.ctx = ctx
+}
+
+// GetContext returns the current context for the TSocket instance.
+// This method is thread-safe because it only reads the context, which is protected by a mutex in the SetContext method.
+//
+// Returns:
+//
+//	context.Context: The current context.
+func (p *TSSLSocket) GetContext() context.Context {
+	return p.ctx
+}
+
+// SetConnTimeout the connect timeout
 func (p *TSSLSocket) SetConnTimeout(timeout time.Duration) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
 	if p.cfg == nil {
 		p.cfg = newTConfiguration()
 	}
@@ -173,12 +159,36 @@ func (p *TSSLSocket) SetConnTimeout(timeout time.Duration) error {
 	return nil
 }
 
-// Sets the socket timeout
+// SetSocketTimeout the socket timeout
 func (p *TSSLSocket) SetSocketTimeout(timeout time.Duration) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
 	if p.cfg == nil {
 		p.cfg = newTConfiguration()
 	}
 	p.cfg.SocketTimeout = timeout
+	return nil
+}
+
+// SetSnappy Whether compressed merge data
+func (p *TSSLSocket) SetSnappy(SnappyCompress bool) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.cfg == nil {
+		p.cfg = newTConfiguration()
+	}
+	p.cfg.Snappy = SnappyCompress
+	return nil
+}
+
+// SetBits64 Whether the packet size is 64-bit binary
+func (p *TSSLSocket) SetBits64(bit64 bool) error {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.cfg == nil {
+		p.cfg = newTConfiguration()
+	}
+	p.cfg.Bit64 = bit64
 	return nil
 }
 
@@ -244,6 +254,7 @@ func (p *TSSLSocket) Open() error {
 			}
 		}
 	}
+	p.id = uuid.NewUUID().Int64()
 	return nil
 }
 
@@ -274,7 +285,7 @@ func (p *TSSLSocket) Read(buf []byte) (int, error) {
 	return n, NewTTransportExceptionFromError(err)
 }
 
-func (p *TSSLSocket) writebytes(buf []byte) (i int, err error) {
+func (p *TSSLSocket) writeHandle(buf []byte) (i int, err error) {
 	if !p.conn.isValid() {
 		return 0, NewTTransportException(NOT_OPEN, "Connection not open")
 	}
@@ -290,44 +301,45 @@ func (p *TSSLSocket) Write(buf []byte) (i int, err error) {
 		return
 	}
 	ln := 4
-	if p.cfg.Packet64Bits {
+	if p.cfg.Bit64 {
 		ln = 8
 	}
 	bys := make([]byte, ln+len(buf))
-	if p.cfg.Packet64Bits {
+	if p.cfg.Bit64 {
 		copy(bys[:ln], util.Int64ToBytes(int64(len(buf))))
 	} else {
 		copy(bys[:ln], util.Int32ToBytes(int32(len(buf))))
 	}
 	copy(bys[ln:], buf)
-	return p.writebytes(bys)
+	return p.writeHandle(bys)
 }
 
 func (p *TSSLSocket) WriteWithMerge(buf []byte) (i int, err error) {
-	if p._dataChan == nil {
+	if p.mgChan == nil {
 		p.mux.Lock()
-		if p._dataChan == nil {
-			p._dataChan = make(chan []byte, DEFAULT_SOCKET_CHAN_LEN)
+		if p.mgChan == nil {
+			p.mgChan = make(chan []byte, p.cfg.GetBlockedLimit())
 		}
 		p.mux.Unlock()
 	}
-	if p._incount >= DEFAULT_SOCKET_CHAN_LEN {
-		err = errors.New("too much blocking data")
-		return
+
+	if p.cfg.GetMergoMode() == REJECTION {
+		if p.inputNum.Load() >= p.cfg.GetBlockedLimit() {
+			err = errors.New("too much blocking data")
+			return
+		}
 	}
+
 	if err = overMessageSize(buf, p.cfg); err != nil {
 		return
 	}
-	p._dataChan <- buf
-	atomic.AddInt64(&p._incount, 1)
-	if p.mux.TryLock() {
+	p.mgChan <- buf
+	p.inputNum.Add(1)
+	if p.mgLock.CompareAndSwap(0, 1) {
+		defer p.mgLock.Store(0)
 		i, err = writeMerge(p)
 	}
 	return
-}
-
-func (p *TSSLSocket) Flush(ctx context.Context) error {
-	return nil
 }
 
 func (p *TSSLSocket) Interrupt() error {
@@ -337,21 +349,39 @@ func (p *TSSLSocket) Interrupt() error {
 	return p.conn.Close()
 }
 
-func (p *TSSLSocket) RemainingBytes() (num_bytes uint64) {
-	const maxSize = ^uint64(0)
-	return maxSize // the truth is, we just don't know unless framed is used
-}
-
-var _ TConfigurationSetter = (*TSSLSocket)(nil)
-
-func (p *TSSLSocket) Process(fn func(pkt *Packet) error) {
-	Process(p, func(socket TsfSocket, pkt *Packet) error {
+func (p *TSSLSocket) Process(fn func(pkt *Packet) error) error {
+	return Process(p, func(socket TsfSocket, pkt *Packet) error {
 		return fn(pkt)
 	})
 }
 
-func (p *TSSLSocket) ProcessMerge(fn func(pkt *Packet) error) {
-	ProcessMerge(p, func(socket TsfSocket, pkt *Packet) error {
+func (p *TSSLSocket) ProcessMerge(fn func(pkt *Packet) error) error {
+	return ProcessMerge(p, func(socket TsfSocket, pkt *Packet) error {
 		return fn(pkt)
 	})
+}
+
+func (p *TSSLSocket) On(tc *TContext) (err error) {
+	defer Recoverable(&err)
+	if tc.OnClose != nil {
+		defer tc.OnClose(p)
+	}
+	if tc.OnOpen != nil {
+		tc.OnOpen(p)
+	}
+	if p.cfg != nil && p.cfg.ProcessMerge && tc.Handler != nil {
+		err = p.ProcessMerge(func(pkt *Packet) (e error) {
+			defer Recoverable(&e)
+			return tc.Handler(p, pkt)
+		})
+	} else if tc.Handler != nil {
+		err = p.Process(func(pkt *Packet) (e error) {
+			defer Recoverable(&e)
+			return tc.Handler(p, pkt)
+		})
+	}
+	if err != nil && tc.OnError != nil {
+		tc.OnError(err, p)
+	}
+	return
 }
