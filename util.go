@@ -20,29 +20,13 @@ package tsf
 import (
 	"errors"
 	"fmt"
-
-	"github.com/donnie4w/simplelog/logging"
+	"strconv"
 )
 
-var log = logging.NewLogger().SetFormat(logging.FORMAT_DATE | logging.FORMAT_TIME)
-
-func SetLog(on bool) {
-	if on {
-		log.SetLevel(logging.LEVEL_ERROR)
-	} else {
-		log.SetLevel(logging.LEVEL_OFF)
-	}
-}
-
 func overMessageSize(buf []byte, cfg *TConfiguration) (err error) {
-	mms := int(cfg.MaxMessageSize)
-	if cfg.MaxMessageSize <= 0 {
-		mms = DEFAULT_MAX_MESSAGE_SIZE
-	}
+	mms := int(cfg.GetMaxMessageSize())
 	if len(buf) > mms {
-		s := fmt.Sprint("tsf error, maxMessageSize:", mms, ",got ", len(buf))
-		log.Error(s)
-		return errors.New(s)
+		return errors.New("message size too big: " + strconv.Itoa(len(buf)) + ", and the maximum allowed message size is " + strconv.Itoa(mms))
 	}
 	return
 }
