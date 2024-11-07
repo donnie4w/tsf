@@ -40,7 +40,7 @@ func TestServerMerge(t *testing.T) {
 		if err = serversocket.Listen(); err == nil {
 			for {
 				if socket, err := serversocket.Accept(); err == nil {
-					socket.SetTConfiguration(&TConfiguration{SnappyMergeData: true})
+					socket.SetTConfiguration(&TConfiguration{Snappy: true})
 					go socket.ProcessMerge(func(pkt *Packet) error {
 						fmt.Println(len(pkt.ToBytes()))
 						return nil
@@ -68,11 +68,11 @@ func TestSocket(t *testing.T) {
 			}
 		}
 	}
-	//Process(sock, process)
+	Process(sock, process)
 }
 
 func TestSocketMerge(t *testing.T) {
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, Snappy: true})
 	if err := sock.Open(); err == nil {
 		for i := 0; i < 100; i++ {
 			go sock.WriteWithMerge([]byte(fmt.Sprint(i)))
@@ -86,7 +86,7 @@ func TestSocketMerge(t *testing.T) {
 }
 
 func BenchmarkSocketMerge(b *testing.B) {
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, Snappy: true})
 	if sock.Open() != nil {
 		panic("open failed")
 	}
