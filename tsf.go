@@ -22,27 +22,40 @@ import (
 	"time"
 )
 
-const (
-	defaultTimeout = 30 * time.Second
-)
+// defaultTimeout is the default timeout duration used if no timeout is specified.
+const defaultTimeout = 30 * time.Second
 
+// TsfConfig holds the configuration settings for the Tsf server.
 type TsfConfig struct {
-	ListenAddr     string
-	Timeout        time.Duration
+	// ListenAddr is the address on which the server will listen for incoming connections.
+	ListenAddr string
+
+	// Timeout is the timeout duration for the server operations.
+	Timeout time.Duration
+
+	// TConfiguration is the configuration for the TCP socket.
 	TConfiguration *TConfiguration
-	OnError        func(error, TsfSocket) error
-	OnClose        func(TsfSocket) error
-	OnOpen         func(TsfSocket) error
-	Handler        func(TsfSocket, []byte) error
 }
 
+// Tsf represents the main structure for the Tsf server.
 type Tsf struct {
-	tserver   TsfSocketServer
+	// tss is the underlying TsfSocketServer instance.
+	tss TsfSocketServer
+
+	// tsfConfig holds the configuration for the Tsf server.
 	tsfConfig *TsfConfig
-	close     bool
+
+	// close indicates whether the server has been closed.
+	close bool
+
+	// tContext defines the context for handling TCP socket events and operations.
+	tContext *TContext
 }
 
-func NewTsf(tsfconfig *TsfConfig) (r *Tsf, err error) {
+// NewTsf creates and returns a new Tsf instance with the provided configuration.
+// It initializes the server with the specified listen address, timeout, and configuration.
+// If the configuration is invalid, it returns an error.
+func NewTsf(tsfconfig *TsfConfig, tContext *TContext) (r *Tsf, err error) {
 	if tsfconfig == nil {
 		err = errors.New("tsf config is nil")
 		return
@@ -50,6 +63,11 @@ func NewTsf(tsfconfig *TsfConfig) (r *Tsf, err error) {
 
 	if tsfconfig.ListenAddr == "" {
 		err = errors.New("tsf listenAddr is empty")
+		return
+	}
+
+	if tContext == nil {
+		err = errors.New("tsf context is nil")
 		return
 	}
 
@@ -61,26 +79,27 @@ func NewTsf(tsfconfig *TsfConfig) (r *Tsf, err error) {
 		tsfconfig.TConfiguration = &TConfiguration{}
 	}
 
-	var tserver TsfSocketServer
+	var tss TsfSocketServer
 	if tsfconfig.TConfiguration.TLSConfig != nil {
-		tserver, err = NewTSSLServerSocketTimeout(tsfconfig.ListenAddr, tsfconfig.TConfiguration.TLSConfig, tsfconfig.Timeout)
+		tss, err = NewTSSLServerSocketTimeout(tsfconfig.ListenAddr, tsfconfig.TConfiguration.TLSConfig, tsfconfig.Timeout)
 	} else {
-		tserver, err = NewTServerSocketTimeout(tsfconfig.ListenAddr, tsfconfig.Timeout)
+		tss, err = NewTServerSocketTimeout(tsfconfig.ListenAddr, tsfconfig.Timeout)
 	}
 	if err != nil {
 		return nil, err
 	}
-	r = &Tsf{tserver: tserver, tsfConfig: tsfconfig}
+	r = &Tsf{tss: tss, tsfConfig: tsfconfig, tContext: tContext}
 	return
 }
 
+// Serve starts the Tsf server and begins serving incoming connections.
+// It uses the provided TContext and TConfiguration to handle the connections.
+// If the server is already closed, it returns an error.
 func (t *Tsf) Serve() error {
-	tc := &TContext{}
-	tc.OnClose = t.tsfConfig.OnClose
-	tc.OnOpen = t.tsfConfig.OnOpen
-	tc.Handler = func(socket TsfSocket, p *Packet) error { return t.tsfConfig.Handler(socket, p.ToBytes()) }
-	tc.OnError = t.tsfConfig.OnError
-	err := t.tserver.Serve(tc, t.tsfConfig.TConfiguration)
+	if t.tsfConfig == nil {
+		return errors.New("tsf config is nil")
+	}
+	err := t.tss.Serve(t.tContext, t.tsfConfig.TConfiguration)
 	if t.close {
 		return errors.New("tsf server closed")
 	} else {
@@ -88,7 +107,9 @@ func (t *Tsf) Serve() error {
 	}
 }
 
-func (t *Tsf) Stop() error {
+// Close stops the Tsf server and closes all active connections.
+// It sets the close flag to true and calls the Close method on the underlying TsfSocketServer.
+func (t *Tsf) Close() error {
 	t.close = true
-	return t.tserver.Close()
+	return t.tss.Close()
 }
