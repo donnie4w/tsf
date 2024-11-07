@@ -47,7 +47,6 @@ type timeoutable interface {
 	Timeout() bool
 }
 
-// Thrift Transport exception
 type TTransportException interface {
 	TypeId() int
 	Err() error
