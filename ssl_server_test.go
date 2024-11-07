@@ -32,16 +32,15 @@ func testSSLConfig() *tls.Config {
 	// Initialize the TLS configuration.
 	cfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
-		//MinVersion:   tls.VersionTLS12, // Set a reasonable minimum version
 	}
 	return cfg
 }
 
 func TestSSLServer(t *testing.T) {
-	if serversocket, err := NewTSSLServerSocketTimeout(":20001", testSSLConfig(), 10*time.Second); err == nil {
-		if err = serversocket.Listen(); err == nil {
+	if server, err := NewTSSLServerSocketTimeout(":20001", testSSLConfig(), 10*time.Second); err == nil {
+		if err = server.Listen(); err == nil {
 			for {
-				if socket, err := serversocket.Accept(); err == nil {
+				if socket, err := server.Accept(); err == nil {
 					fmt.Println("socket accepted")
 					go func() {
 						err := Process(socket, processSSL)
@@ -60,7 +59,7 @@ func TestSSLServerMerge(t *testing.T) {
 		if err = serversocket.Listen(); err == nil {
 			for {
 				if socket, err := serversocket.Accept(); err == nil {
-					socket.SetTConfiguration(&TConfiguration{SnappyMergeData: true})
+					socket.SetTConfiguration(&TConfiguration{Snappy: true})
 					go socket.ProcessMerge(func(pkt *Packet) error {
 						fmt.Println(len(pkt.ToBytes()))
 						return nil
@@ -92,7 +91,7 @@ func TestSSLSocket(t *testing.T) {
 }
 
 func TestSSLSocketMerge(t *testing.T) {
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, Snappy: true})
 	if err := sock.Open(); err == nil {
 		for i := 0; i < 100; i++ {
 			go sock.WriteWithMerge([]byte(fmt.Sprint(i)))
@@ -106,7 +105,7 @@ func TestSSLSocketMerge(t *testing.T) {
 }
 
 func BenchmarkSSLSocketMerge(b *testing.B) {
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, SnappyMergeData: true})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, Snappy: true})
 	if sock.Open() != nil {
 		panic("open failed")
 	}
