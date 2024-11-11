@@ -286,6 +286,11 @@ func (p *TSocket) Write(buf []byte) (i int, err error) {
 }
 
 func (p *TSocket) WriteWithMerge(buf []byte) (i int, err error) {
+
+	if !p.conn.isValid() {
+		return 0, NewTTransportException(NOT_OPEN, "Connection not open")
+	}
+
 	if p.mgChan == nil {
 		p.mux.Lock()
 		if p.mgChan == nil {
