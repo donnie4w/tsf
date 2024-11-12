@@ -41,6 +41,9 @@ type tsfsocket interface {
 	IsOpen() bool
 	Open() error
 	Conn() net.Conn
+	On(tc *TContext) (err error)
+	SetContext(ctx context.Context)
+	GetContext() context.Context
 }
 
 // TsfSocket defines the interface for a TCP socket with additional features and configurations.
