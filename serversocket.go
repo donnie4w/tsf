@@ -37,6 +37,7 @@ package tsf
  */
 
 import (
+	"errors"
 	"github.com/donnie4w/gofer/uuid"
 	"net"
 	"sync"
@@ -114,6 +115,23 @@ func (p *TServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
 					socket.On(tc)
 				}()
 			}
+		}
+	}
+	return
+}
+
+func (p *TServerSocket) AcceptLoop(tc *TContext, conf *TConfiguration) (err error) {
+	if p.listener == nil {
+		return errors.New("the service is not listening")
+	}
+	for {
+		if socket, err := p.Accept(); err == nil {
+			go func() {
+				if conf != nil {
+					socket.SetTConfiguration(conf)
+				}
+				socket.On(tc)
+			}()
 		}
 	}
 	return
