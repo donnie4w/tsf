@@ -107,6 +107,24 @@ func (t *Tsf) Serve() error {
 	}
 }
 
+// Listen starts listening for incoming connections on the specified address.
+// It returns an error if the listen operation fails.
+func (t *Tsf) Listen() error {
+	if t.tsfConfig == nil {
+		return errors.New("tsf config is nil")
+	}
+	return t.tss.Listen()
+}
+
+// AcceptLoop handles the loop for accepting incoming connections.
+// It returns an error if the acceptance process fails.
+func (t *Tsf) AcceptLoop() error {
+	if t.tsfConfig == nil {
+		return errors.New("tsf config is nil")
+	}
+	return t.tss.AcceptLoop(t.tContext, t.tsfConfig.TConfiguration)
+}
+
 // Close stops the Tsf server and closes all active connections.
 // It sets the close flag to true and calls the Close method on the underlying TsfSocketServer.
 func (t *Tsf) Close() error {
