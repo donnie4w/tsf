@@ -19,13 +19,12 @@ package tsf
 
 import (
 	"fmt"
-	"sync/atomic"
 	"testing"
 	"time"
 )
 
 func Test_tsf(t *testing.T) {
-	cfg := &TsfConfig{ListenAddr: ":20001", TConfiguration: &TConfiguration{ProcessMerge: true}}
+	cfg := &TsfConfig{ListenAddr: ":20001", TConfiguration: &TConfiguration{ProcessMerge: false}}
 	tx := &TContext{}
 	tx.OnOpen = func(socket TsfSocket) error {
 		fmt.Println("OnOpen:", socket.ID())
@@ -33,7 +32,7 @@ func Test_tsf(t *testing.T) {
 	}
 	tx.Handler = func(socket TsfSocket, packet *Packet) error {
 		fmt.Println("server recv:", string(packet.ToBytes()))
-		if _, err := socket.WriteWithMerge(packet.ToBytes()); err != nil {
+		if _, err := socket.Write(packet.ToBytes()); err != nil {
 			panic(err)
 		}
 		return nil
@@ -50,29 +49,18 @@ func Test_tsf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log("listen:", cfg.ListenAddr)
 	s.Serve()
 }
 
 func Test_tsfclient(t *testing.T) {
 	tx := &TContext{}
-	var i atomic.Int32
 	tx.OnOpen = func(socket TsfSocket) error {
 		fmt.Println("OnOpen:", socket.ID())
-		if _, err := socket.WriteWithMerge([]byte(fmt.Sprint(i.Add(1)))); err != nil {
-			panic(err)
-		}
 		return nil
 	}
 	tx.Handler = func(socket TsfSocket, packet *Packet) error {
 		fmt.Println("client recv:", string(packet.ToBytes()))
-		if i.Load() < 10 {
-			for range 20 {
-				if _, err := socket.WriteWithMerge([]byte(fmt.Sprint(i.Add(1)))); err != nil {
-					panic(err)
-				}
-			}
-
-		}
 		return nil
 	}
 	tx.OnClose = func(socket TsfSocket) error {
@@ -84,11 +72,16 @@ func Test_tsfclient(t *testing.T) {
 		return nil
 	}
 
-	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, ProcessMerge: true})
+	sock := NewTSocketConf(":20001", &TConfiguration{ConnectTimeout: 10 * time.Second, ProcessMerge: false})
 
 	if err := sock.Open(); err == nil {
-		sock.On(tx)
+		go sock.On(tx)
 	} else {
 		panic(err.Error())
 	}
+	for i := 0; i < 10; i++ {
+		<-time.After(time.Second)
+		sock.Write([]byte(fmt.Sprint("client->", i)))
+	}
+	time.Sleep(10 * time.Second)
 }
