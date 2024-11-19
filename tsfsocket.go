@@ -141,6 +141,10 @@ type TsfSocketServer interface {
 	// Serve serves incoming connections using the provided context and configuration.
 	// It returns an error if the serving process fails.
 	Serve(ctx *TContext, conf *TConfiguration) error
+
+	// AcceptLoop handles the loop for accepting incoming connections.
+	// It returns an error if the acceptance process fails.
+	AcceptLoop(tc *TContext, conf *TConfiguration) (err error)
 }
 
 // TContext defines the context for handling TCP socket events and operations.
