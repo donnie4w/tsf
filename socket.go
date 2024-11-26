@@ -349,7 +349,13 @@ func (p *TSocket) On(tc *TContext) (err error) {
 		}()
 	}
 	if tc.OnOpen != nil {
-		tc.OnOpen(p)
+		go func() {
+			defer Recoverable(&err)
+			tc.OnOpen(p)
+		}()
+	}
+	if tc.OnOpenSync != nil {
+		tc.OnOpenSync(p)
 	}
 	if p.cfg != nil && p.cfg.ProcessMerge && tc.Handler != nil {
 		err = p.ProcessMerge(func(pkt *Packet) (e error) {
