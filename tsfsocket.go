@@ -161,6 +161,10 @@ type TContext struct {
 	// It takes a TsfSocket as an argument and returns an error if the operation fails.
 	OnOpen func(TsfSocket) error
 
+	// OnOpenSync is a synchronous callback function that is called when a socket is opened.
+	// It takes a TsfSocket as an argument and returns an error if the operation fails.
+	OnOpenSync func(TsfSocket) error
+
 	// Handler is a callback function that is called to handle incoming packets.
 	// It takes a TsfSocket and a Packet as arguments and returns an error if the operation fails.
 	Handler func(TsfSocket, *Packet) error
