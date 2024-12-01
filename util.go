@@ -31,9 +31,9 @@ func overMessageSize(buf []byte, cfg *TConfiguration) (err error) {
 	return
 }
 
-func Recoverable(err *error) {
+func recoverable(err *error) {
 	if r := recover(); r != nil {
-		if *err != nil {
+		if err != nil {
 			*err = errors.New(fmt.Sprint(r))
 		}
 	}
