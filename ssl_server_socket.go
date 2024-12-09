@@ -41,6 +41,7 @@ import (
 	"errors"
 	"github.com/donnie4w/gofer/uuid"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -49,7 +50,9 @@ type TSSLServerSocket struct {
 	addr          net.Addr
 	clientTimeout time.Duration
 	interrupted   bool
+	isClosed      bool
 	cfg           *tls.Config
+	mu            sync.Mutex
 }
 
 func NewTSSLServerSocket(listenAddr string, cfg *tls.Config) (*TSSLServerSocket, error) {
@@ -98,7 +101,7 @@ func (p *TSSLServerSocket) Accept() (*TSSLSocket, error) {
 
 func (p *TSSLServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
 	if err = p.Listen(); err == nil {
-		for {
+		for !p.isClosed {
 			if socket, err := p.Accept(); err == nil {
 				go func() {
 					if conf != nil {
@@ -116,7 +119,7 @@ func (p *TSSLServerSocket) AcceptLoop(tc *TContext, conf *TConfiguration) (err e
 	if p.listener == nil {
 		return errors.New("the service is not listening")
 	}
-	for {
+	for !p.isClosed {
 		if socket, err := p.Accept(); err == nil {
 			go func() {
 				if conf != nil {
@@ -151,14 +154,15 @@ func (p *TSSLServerSocket) Addr() net.Addr {
 	return p.addr
 }
 
-func (p *TSSLServerSocket) Close() error {
-	defer func() {
-		p.listener = nil
-	}()
+func (p *TSSLServerSocket) Close() (err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.IsListening() {
-		return p.listener.Close()
+		p.listener = nil
+		err = p.listener.Close()
 	}
-	return nil
+	p.isClosed = true
+	return
 }
 
 func (p *TSSLServerSocket) Interrupt() error {
