@@ -24,7 +24,7 @@ import (
 )
 
 func Process(socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet) error) (err error) {
-	defer Recoverable(&err)
+	defer recoverable(&err)
 	defer socket.Close()
 	for socket.IsValid() {
 		headBit := 4
@@ -59,7 +59,7 @@ func Process(socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet
 					processHandler(socket, pkt)
 				} else {
 					go func() {
-						defer Recoverable(nil)
+						defer recoverable(nil)
 						processHandler(socket, pkt)
 					}()
 				}
@@ -137,7 +137,7 @@ START:
 }
 
 func ProcessMerge(socket tsfsocket, processHandler func(socket TsfSocket, pkt *Packet) error) (err error) {
-	defer Recoverable(&err)
+	defer recoverable(&err)
 	defer socket.Close()
 	for socket.IsValid() {
 		var headBs []byte
@@ -196,7 +196,7 @@ START:
 				processHandler(socket, pkt)
 			} else {
 				go func() {
-					defer Recoverable(nil)
+					defer recoverable(nil)
 					processHandler(socket, pkt)
 				}()
 			}
