@@ -49,6 +49,7 @@ type TServerSocket struct {
 	addr          net.Addr
 	clientTimeout time.Duration
 	mu            sync.RWMutex
+	isClosed      bool
 	interrupted   bool
 }
 
@@ -106,7 +107,7 @@ func (p *TServerSocket) Accept() (*TSocket, error) {
 
 func (p *TServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
 	if err = p.Listen(); err == nil {
-		for {
+		for !p.isClosed {
 			if socket, err := p.Accept(); err == nil {
 				go func() {
 					if conf != nil {
@@ -124,7 +125,7 @@ func (p *TServerSocket) AcceptLoop(tc *TContext, conf *TConfiguration) (err erro
 	if p.listener == nil {
 		return errors.New("the service is not listening")
 	}
-	for {
+	for !p.isClosed {
 		if socket, err := p.Accept(); err == nil {
 			go func() {
 				if conf != nil {
@@ -164,15 +165,15 @@ func (p *TServerSocket) Addr() net.Addr {
 	return p.addr
 }
 
-func (p *TServerSocket) Close() error {
-	var err error
+func (p *TServerSocket) Close() (err error) {
 	p.mu.Lock()
+	defer p.mu.Unlock()
 	if p.IsListening() {
 		err = p.listener.Close()
 		p.listener = nil
 	}
-	p.mu.Unlock()
-	return err
+	p.isClosed = true
+	return
 }
 
 func (p *TServerSocket) Interrupt() error {
