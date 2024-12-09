@@ -111,6 +111,9 @@ func (p *TSSLServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error)
 				}()
 			}
 		}
+		if p.isClosed {
+			err = errors.New("the service is closed")
+		}
 	}
 	return
 }
@@ -128,6 +131,9 @@ func (p *TSSLServerSocket) AcceptLoop(tc *TContext, conf *TConfiguration) (err e
 				socket.On(tc)
 			}()
 		}
+	}
+	if p.isClosed {
+		err = errors.New("the service is closed")
 	}
 	return
 }
