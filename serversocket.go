@@ -117,6 +117,9 @@ func (p *TServerSocket) Serve(tc *TContext, conf *TConfiguration) (err error) {
 				}()
 			}
 		}
+		if p.isClosed {
+			err = errors.New("the service is closed")
+		}
 	}
 	return
 }
@@ -134,6 +137,9 @@ func (p *TServerSocket) AcceptLoop(tc *TContext, conf *TConfiguration) (err erro
 				socket.On(tc)
 			}()
 		}
+	}
+	if p.isClosed {
+		err = errors.New("the service is closed")
 	}
 	return
 }
