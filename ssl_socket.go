@@ -366,13 +366,13 @@ func (p *TSSLSocket) ProcessMerge(fn func(pkt *Packet) error) error {
 }
 
 func (p *TSSLSocket) On(tc *TContext) (err error) {
-	defer Recoverable(&err)
+	defer recoverable(&err)
 	if tc.OnClose != nil {
 		defer tc.OnClose(p)
 	}
 	if tc.OnOpen != nil {
 		go func() {
-			defer Recoverable(&err)
+			defer recoverable(&err)
 			tc.OnOpen(p)
 		}()
 	}
@@ -381,12 +381,12 @@ func (p *TSSLSocket) On(tc *TContext) (err error) {
 	}
 	if p.cfg != nil && p.cfg.ProcessMerge && tc.Handler != nil {
 		err = p.ProcessMerge(func(pkt *Packet) (e error) {
-			defer Recoverable(&e)
+			defer recoverable(&e)
 			return tc.Handler(p, pkt)
 		})
 	} else if tc.Handler != nil {
 		err = p.Process(func(pkt *Packet) (e error) {
-			defer Recoverable(&e)
+			defer recoverable(&e)
 			return tc.Handler(p, pkt)
 		})
 	}
