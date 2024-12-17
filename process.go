@@ -99,37 +99,43 @@ func readStream(socket tsfsocket, bs []byte, ln int) (err error) {
 
 func writeMerge(socket tsfsocket) (int, error) {
 START:
-	ln, isbit64 := 4, socket.Cfg().Bit64
-	if isbit64 {
-		ln = 8
-	}
+	isbit64 := socket.Cfg().Bit64
 	buf := buffer.NewBuffer()
-	for bs := range socket.dataChan() {
-		bys := make([]byte, ln+len(bs))
+	if !socket.Cfg().Snappy {
 		if isbit64 {
-			copy(bys[:ln], util.Int64ToBytes(int64(len(bs))))
+			buf.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 		} else {
-			copy(bys[:ln], util.Int32ToBytes(int32(len(bs))))
+			buf.Write([]byte{0, 0, 0, 0})
 		}
-		copy(bys[ln:], bs)
-		buf.Write(bys)
+	}
+	for bs := range socket.dataChan() {
+		if isbit64 {
+			buf.Write(util.Int64ToBytes(int64(len(bs))))
+		} else {
+			buf.Write(util.Int32ToBytes(int32(len(bs))))
+		}
+		buf.Write(bs)
 		if socket.pendSub() <= 0 {
 			break
 		}
 	}
-
-	ds := buf.Bytes()
+	var ds []byte
 	if socket.Cfg().Snappy {
-		ds = util.SnappyEncode(ds)
-	}
-	bys := make([]byte, ln+len(ds))
-	if isbit64 {
-		copy(bys[:ln], util.Int64ToBytes(int64(len(ds))))
+		se := util.SnappyEncode(buf.Bytes())
+		if isbit64 {
+			ds = append(util.Int64ToBytes(int64(len(se))), se...)
+		} else {
+			ds = append(util.Int32ToBytes(int32(len(se))), se...)
+		}
 	} else {
-		copy(bys[:ln], util.Int32ToBytes(int32(len(ds))))
+		ds = buf.Bytes()
+		if isbit64 {
+			copy(ds[:8], util.Int64ToBytes(int64(len(ds)-8)))
+		} else {
+			copy(ds[:4], util.Int32ToBytes(int32(len(ds)-4)))
+		}
 	}
-	copy(bys[ln:], ds)
-	i, err := socket.writeHandle(bys)
+	i, err := socket.writeHandle(ds)
 	if err == nil && socket.pendNumber() > 0 {
 		goto START
 	}
